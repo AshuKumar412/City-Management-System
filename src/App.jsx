@@ -6,7 +6,7 @@ import CitizenDashboard from './pages/CitizenDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
-  const { user, loading } = useAuth();
+  const {user, loading} = useAuth();
 
   if (loading) {
     return (
@@ -28,7 +28,7 @@ function App() {
         path="/admin"
         element={
           <ProtectedRoute requiredRole="admin">
-            <AdminDashboard />
+            <AdminDashboard/>
           </ProtectedRoute>
         }
       />
