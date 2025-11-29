@@ -1,12 +1,13 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
-import Login from './pages/Login';
-import AdminDashboard from './pages/AdminDashboard';
-import CitizenDashboard from './pages/CitizenDashboard';
-import ProtectedRoute from './components/ProtectedRoute';
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+
+import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
+import CitizenDashboard from "./pages/CitizenDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-  const {user, loading} = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -22,16 +23,27 @@ function App() {
     <Routes>
       <Route
         path="/"
-        element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/citizen'} replace /> : <Login />}
+        element={
+          user ? (
+            <Navigate
+              to={user.role === "admin" ? "/admin" : "/citizen"}
+              replace
+            />
+          ) : (
+            <Login />
+          )
+        }
       />
+
       <Route
         path="/admin"
         element={
           <ProtectedRoute requiredRole="admin">
-            <AdminDashboard/>
+            <AdminDashboard />
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/citizen"
         element={
@@ -40,6 +52,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

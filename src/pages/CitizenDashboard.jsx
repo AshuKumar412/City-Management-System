@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import ThemeToggle from '../components/ThemeToggle';
+import ReportIssue from "../components/ReportIssue";
 
 const CitizenDashboard = () => {
   const { user, logout } = useAuth();
@@ -13,75 +14,43 @@ const CitizenDashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [newComplaint, setNewComplaint] = useState({
-    name: user?.full_name || '',
-    issue: '',
-    location: ''
-  });
-
   useEffect(() => {
-    if (activeTab === 'complaints') {
-      fetchComplaints();
-    }
-    if (activeTab === 'amenities') {
-      fetchAmenities();
-    }
-    if (activeTab === 'announcements') {
-      fetchAnnouncements();
-    }
-  }, [activeTab]);
+    if (!user) return;
+
+    if (activeTab === 'complaints') fetchComplaints();
+    if (activeTab === 'amenities') fetchAmenities();
+    if (activeTab === 'announcements') fetchAnnouncements();
+  }, [activeTab, user]);
 
   const fetchComplaints = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('complaints')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setComplaints(data);
-    }
+    setComplaints(data || []);
     setLoading(false);
   };
 
   const fetchAmenities = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('amenities')
       .select('*')
       .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setAmenities(data);
-    }
+    setAmenities(data || []);
     setLoading(false);
   };
 
   const fetchAnnouncements = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('announcements')
       .select('*')
       .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setAnnouncements(data);
-    }
+    setAnnouncements(data || []);
     setLoading(false);
-  };
-
-  const handleSubmitComplaint = async (e) => {
-    e.preventDefault();
-    const { error } = await supabase
-      .from('complaints')
-      .insert([{ ...newComplaint, user_id: user.id }]);
-
-    if (!error) {
-      setNewComplaint({ name: user.full_name, issue: '', location: '' });
-      fetchComplaints();
-      alert('Complaint submitted successfully!');
-    }
   };
 
   const handleLogout = () => {
@@ -99,6 +68,8 @@ const CitizenDashboard = () => {
     }
   };
 
+  if (!user) return null;
+
   return (
     <div className="citizen-dashboard">
       <nav className="navbar navbar-expand-lg navbar-dark bg-success">
@@ -107,9 +78,7 @@ const CitizenDashboard = () => {
           <div className="d-flex align-items-center gap-2">
             <span className="text-white me-3">Welcome, {user.full_name}</span>
             <ThemeToggle />
-            <button className="btn btn-outline-light" onClick={handleLogout}>
-              Logout
-            </button>
+            <button className="btn btn-outline-light" onClick={handleLogout}>Logout</button>
           </div>
         </div>
       </nav>
@@ -118,47 +87,25 @@ const CitizenDashboard = () => {
         <div className="row">
           <div className="col-md-2">
             <div className="list-group">
-              <button
-                className={`list-group-item list-group-item-action ${activeTab === 'complaints' ? 'active' : ''}`}
-                onClick={() => setActiveTab('complaints')}
-              >
-                My Complaints
-              </button>
-              <button
-                className={`list-group-item list-group-item-action ${activeTab === 'submit' ? 'active' : ''}`}
-                onClick={() => setActiveTab('submit')}
-              >
-                Submit Complaint
-              </button>
-              <button
-                className={`list-group-item list-group-item-action ${activeTab === 'amenities' ? 'active' : ''}`}
-                onClick={() => setActiveTab('amenities')}
-              >
-                City Amenities
-              </button>
-              <button
-                className={`list-group-item list-group-item-action ${activeTab === 'announcements' ? 'active' : ''}`}
-                onClick={() => setActiveTab('announcements')}
-              >
-                Announcements
-              </button>
+              <button className={`list-group-item list-group-item-action ${activeTab === 'complaints' ? 'active' : ''}`} onClick={() => setActiveTab('complaints')}>My Complaints</button>
+              <button className={`list-group-item list-group-item-action ${activeTab === 'submit' ? 'active' : ''}`} onClick={() => setActiveTab('submit')}>Submit Complaint</button>
+              <button className={`list-group-item list-group-item-action ${activeTab === 'amenities' ? 'active' : ''}`} onClick={() => setActiveTab('amenities')}>City Amenities</button>
+              <button className={`list-group-item list-group-item-action ${activeTab === 'announcements' ? 'active' : ''}`} onClick={() => setActiveTab('announcements')}>Announcements</button>
             </div>
           </div>
 
           <div className="col-md-10">
+
+            {/* COMPLAINTS TAB */}
             {activeTab === 'complaints' && (
               <div>
                 <h2 className="mb-4">My Complaints</h2>
                 {loading ? (
                   <div className="text-center py-5">
-                    <div className="spinner-border text-success" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <div className="spinner-border text-success" role="status"></div>
                   </div>
                 ) : complaints.length === 0 ? (
-                  <div className="alert alert-info">
-                    You haven't submitted any complaints yet.
-                  </div>
+                  <div className="alert alert-info">You haven't submitted any complaints yet.</div>
                 ) : (
                   <div className="table-responsive">
                     <table className="table table-hover">
@@ -172,20 +119,20 @@ const CitizenDashboard = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {complaints.map(complaint => (
-                          <tr key={complaint.id}>
-                            <td>{complaint.issue}</td>
-                            <td>{complaint.location}</td>
+                        {complaints.map(c => (
+                          <tr key={c.id}>
+                            <td>{c.issue}</td>
+                            <td>{c.location}</td>
                             <td>
                               <span className={`badge bg-${
-                                complaint.status === 'Resolved' ? 'success' :
-                                complaint.status === 'In-Progress' ? 'info' : 'warning'
+                                c.status === 'Resolved' ? 'success' :
+                                c.status === 'In-Progress' ? 'info' : 'warning'
                               }`}>
-                                {complaint.status}
+                                {c.status}
                               </span>
                             </td>
-                            <td>{new Date(complaint.created_at).toLocaleDateString()}</td>
-                            <td>{new Date(complaint.updated_at).toLocaleDateString()}</td>
+                            <td>{new Date(c.created_at).toLocaleDateString()}</td>
+                            <td>{new Date(c.updated_at).toLocaleDateString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -195,76 +142,38 @@ const CitizenDashboard = () => {
               </div>
             )}
 
+            {/* SUBMIT COMPLAINT TAB */}
             {activeTab === 'submit' && (
               <div>
-                <h2 className="mb-4">Submit a Complaint</h2>
-                <div className="card">
-                  <div className="card-body">
-                    <form onSubmit={handleSubmitComplaint}>
-                      <div className="mb-3">
-                        <label className="form-label">Your Name</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={newComplaint.name}
-                          onChange={(e) => setNewComplaint({...newComplaint, name: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label className="form-label">Issue Description</label>
-                        <textarea
-                          className="form-control"
-                          rows="4"
-                          value={newComplaint.issue}
-                          onChange={(e) => setNewComplaint({...newComplaint, issue: e.target.value})}
-                          placeholder="Describe the issue in detail..."
-                          required
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label className="form-label">Location</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={newComplaint.location}
-                          onChange={(e) => setNewComplaint({...newComplaint, location: e.target.value})}
-                          placeholder="Enter the location of the issue"
-                          required
-                        />
-                      </div>
-                      <button type="submit" className="btn btn-success">
-                        Submit Complaint
-                      </button>
-                    </form>
+                <h2 className="mb-4">Submit a Complaint (Photo + Location)</h2>
+                <div className="row">
+                  <div className="col-md-8 col-lg-6">
+                    <ReportIssue user={user} onSubmitSuccess={fetchComplaints} />
                   </div>
                 </div>
               </div>
             )}
 
+            {/* AMENITIES TAB */}
             {activeTab === 'amenities' && (
               <div>
                 <h2 className="mb-4">City Amenities</h2>
                 {loading ? (
                   <div className="text-center py-5">
-                    <div className="spinner-border text-success" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <div className="spinner-border text-success"></div>
                   </div>
                 ) : (
                   <div className="row g-3">
-                    {amenities.map(amenity => (
-                      <div key={amenity.id} className="col-md-4">
+                    {amenities.map(a => (
+                      <div key={a.id} className="col-md-4">
                         <div className="card h-100 amenity-card">
                           <div className="card-body">
-                            <div className="amenity-icon mb-3">
-                              {getAmenityIcon(amenity.type)}
-                            </div>
-                            <h5 className="card-title">{amenity.name}</h5>
+                            <div className="amenity-icon mb-3">{getAmenityIcon(a.type)}</div>
+                            <h5 className="card-title">{a.name}</h5>
                             <p className="card-text">
-                              <span className="badge bg-secondary mb-2">{amenity.type}</span><br />
-                              <small className="text-muted">📍 {amenity.location}</small><br />
-                              <span className="mt-2 d-block">{amenity.description}</span>
+                              <span className="badge bg-secondary mb-2">{a.type}</span><br />
+                              <small className="text-muted">📍 {a.location}</small><br />
+                              <span className="mt-2 d-block">{a.description}</span>
                             </p>
                           </div>
                         </div>
@@ -275,32 +184,30 @@ const CitizenDashboard = () => {
               </div>
             )}
 
+            {/* ANNOUNCEMENTS TAB */}
             {activeTab === 'announcements' && (
               <div>
                 <h2 className="mb-4">City Announcements</h2>
                 {loading ? (
                   <div className="text-center py-5">
-                    <div className="spinner-border text-success" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
+                    <div className="spinner-border text-success"></div>
                   </div>
                 ) : (
                   <div className="list-group">
-                    {announcements.map(announcement => (
-                      <div key={announcement.id} className="list-group-item announcement-item">
+                    {announcements.map(a => (
+                      <div key={a.id} className="list-group-item">
                         <div className="d-flex w-100 justify-content-between">
-                          <h5 className="mb-1">{announcement.title}</h5>
-                          <small className="text-muted">
-                            {new Date(announcement.created_at).toLocaleDateString()}
-                          </small>
+                          <h5 className="mb-1">{a.title}</h5>
+                          <small>{new Date(a.created_at).toLocaleDateString()}</small>
                         </div>
-                        <p className="mb-1">{announcement.content}</p>
+                        <p>{a.content}</p>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             )}
+
           </div>
         </div>
       </div>
